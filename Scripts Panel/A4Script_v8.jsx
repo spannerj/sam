@@ -177,7 +177,7 @@ function loopFolder(path, watermark, output){
                 app.open("C:\\A4Template.indd")
               }
               //create random password
-              var rand = randomString(4);
+              var rand = randomString(3);
               
               loopFiles (jpgFolder, folderName, watermark, output, rand, path);
                     
@@ -235,7 +235,8 @@ function loopFolder(path, watermark, output){
     //if file processed successfully write to password file and delete files and folder    
     if (error == -1)
     {
-        writeToFile (ref + ' - ' + rand, startPath);
+        pw = ref + rand;
+        writeToFile (ref + ' - ' + pw, startPath);
         deleteFiles(filesArray); 
         folder.remove();
     }
@@ -288,7 +289,7 @@ function placeFiles(filesArray, watermark, ref, output, rand, startPath){
     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     
           //move files into a renamed folder in parent _Class folder
-          var newFolderName = rand;
+          var newFolderName = ref + rand;
           var destinationFolder = new Folder(startPath + "_Class" + "\\" + newFolderName);
           if (!destinationFolder.exists) destinationFolder.create();
 		
@@ -307,11 +308,12 @@ function placeFiles(filesArray, watermark, ref, output, rand, startPath){
             var tf = allTextFrames[j];          
             tf.contents = watermark
         }
+        pw = ref.replace('%20',' ') + rand;
         var tf = allTextFrames[6];
         tf.contents = ref.replace('%20',' ');
         
         var refFrame = allTextFrames[7];
-        refFrame.contents = rand;
+        refFrame.contents = pw;
         
         //store ref for filename
         pdfName = ref;
