@@ -1,7 +1,7 @@
-﻿
+﻿#include Check_Indesign.jsx
+
 var count = 1;
 var pdfName = '';
-var errorArray = [];
 var newjpgfolder ='';
 
 main();
@@ -9,8 +9,12 @@ function main(){
     storedSettings = getStoredSettings();
     
     var settings = getSettings(storedSettings.watermark, storedSettings.startFolder, storedSettings.outputFolder);
-    //var settings = {startFolder : "C:\\Users\\Spencer\\Desktop\\ToProcess\\", watermark : "Return by 20th February 2014", outputFolder : "C:\\scriptforSam\\Finished PDFs\\"};
-    
+   
+    if ( folder_check( storedSettings.startFolder ) )
+    {
+        return;
+    }
+   
     //create new folder for jpg folders to be moved to
     var f = new Folder(settings.startFolder + '_Class');
     if (!f.exists) f.create();
@@ -22,16 +26,6 @@ function main(){
     
     loopFolder(settings.startFolder, settings.watermark, outputFolder);
 
-    if (errorArray.length > 0)
-    {
-        var msg = 'The folowing folders did not process due to missing JPEG folder or incorrect number of files: ';
-        for (var i = 0; i < errorArray.length; i++) 
-        {
-                msg = msg + errorArray[i] + ' ';
-        }
-
-        alert(msg);
-    }
     return true
 };
 
@@ -92,7 +86,7 @@ function getSettings(storedWatermark,storedStart,storedOutput){
             return {watermark:waterText.text, startFolder:startText.text, outputFolder:outText.text}
         }
         else
-            exit();   
+            return;   
 }
 
 function setup(){
@@ -180,10 +174,6 @@ function loopFolder(path, watermark, output){
               var rand = randomString(3);
               
               loopFiles (jpgFolder, folderName, watermark, output, rand, path);
-                    
-              
-             // var folder = new Folder(jpgFolder);
-              //folder.remove();
           }  
       
         win.pnl.progBar.value++;      
@@ -191,7 +181,6 @@ function loopFolder(path, watermark, output){
  
     //close progress bar
     win.close();
- 
 };
  
  function loopFiles(path, folderName, watermark, output, rand, startPath){
@@ -223,23 +212,11 @@ function loopFolder(path, watermark, output){
     
     //pass files array and place files
     placeFiles (filesArray, watermark, ref, output, rand, startPath)
-    
-    error = -1; 
-    for(var i = 0; i < errorArray.length; i++){ 
-        if(ref === errorArray[i]) {
-            error= i;
-            break;
-        }
-    };
-    
-    //if file processed successfully write to password file and delete files and folder    
-    if (error == -1)
-    {
-        pw = ref + rand;
-        writeToFile (ref + ' - ' + pw, startPath);
-        deleteFiles(filesArray); 
-        folder.remove();
-    }
+
+    pw = ref + rand;
+    writeToFile (ref + ' - ' + pw, startPath);
+    deleteFiles(filesArray); 
+    folder.remove();
 };
 
 function writeToFile(text, logPath) {
@@ -257,7 +234,7 @@ function writeToFile(text, logPath) {
 	file.close();
 }
 
-//remove all files in teh jpg folder
+//remove all files in the jpg folder
 function deleteFiles(filesArray){
      for (j=0; j<6;j+=1)
     {            
@@ -269,61 +246,49 @@ function deleteFiles(filesArray){
 function placeFiles(filesArray, watermark, ref, output, rand, startPath){
 
     var doc = app.activeDocument;      
-   
-    if (filesArray.length == 6)
-    {
-         for (j=0; j<6;j+=1)
-        {            
-            var f = new File(filesArray[j]);  
-            doc.pages[0].rectangles[j].place(f, false);  
-            doc.pages[0].rectangles[j].images[0].select();
-            sel = doc.selection[0];
-            var h = sel.geometricBounds[2] - sel.geometricBounds[0];
-            var w = sel.geometricBounds[3] - sel.geometricBounds[1] ;
-            if (w > h)
-            {
-                    sel.rotationAngle = 90;
-            }
-            doc.pages[0].rectangles[j].images[0].fit(FitOptions.CONTENT_TO_FRAME); 
-        
-    //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    
-          //move files into a renamed folder in parent _Class folder
-          var newFolderName = ref + rand;
-          var destinationFolder = new Folder(startPath + "_Class" + "\\" + newFolderName);
-          if (!destinationFolder.exists) destinationFolder.create();
-		
-		var vbScript = 'Set fs = CreateObject("Scripting.FileSystemObject")\r';
-		vbScript +=  'fs.CopyFile "' + f.fsName.replace("\\", "\\\\") + '", "' + destinationFolder.fsName.replace("\\", "\\\\") + "\\" + f.name + '"';
 
-		app.doScript(vbScript, ScriptLanguage.visualBasic);
-        
-     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   
-     
+     for (j=0; j<6; j+=1)
+     {            
+        var f = new File(filesArray[j]);  
+        doc.pages[0].rectangles[j].place(f, false);  
+        doc.pages[0].rectangles[j].images[0].select();
+        sel = doc.selection[0];
+        var h = sel.geometricBounds[2] - sel.geometricBounds[0];
+        var w = sel.geometricBounds[3] - sel.geometricBounds[1] ;
+        if (w > h)
+        {
+                sel.rotationAngle = 90;
         }
+        doc.pages[0].rectangles[j].images[0].fit(FitOptions.CONTENT_TO_FRAME); 
+
+      //move files into a renamed folder in parent _Class folder
+      var newFolderName = ref + rand;
+      var destinationFolder = new Folder(startPath + "_Class" + "\\" + newFolderName);
+      if (!destinationFolder.exists) destinationFolder.create();
     
-         var allTextFrames = doc.textFrames;
-         for (j=0; j<6;j+=1)
-        {        
-            var tf = allTextFrames[j];          
-            tf.contents = watermark
-        }
-        pw = ref.replace('%20',' ') + rand;
-        var tf = allTextFrames[6];
-        tf.contents = ref.replace('%20',' ');
-        
-        var refFrame = allTextFrames[7];
-        refFrame.contents = pw;
-        
-        //store ref for filename
-        pdfName = ref;
-        
-        exportPDF(output);
+        var vbScript = 'Set fs = CreateObject("Scripting.FileSystemObject")\r';
+        vbScript +=  'fs.CopyFile "' + f.fsName.replace("\\", "\\\\") + '", "' + destinationFolder.fsName.replace("\\", "\\\\") + "\\" + f.name + '"';
+
+        app.doScript(vbScript, ScriptLanguage.visualBasic); 
     }
-    else //doesn't have 6 files
-    {
-            errorArray.push(ref);
+
+     var allTextFrames = doc.textFrames;
+     for (j=0; j<6;j+=1)
+    {        
+        var tf = allTextFrames[j];          
+        tf.contents = watermark
     }
+    pw = ref.replace('%20',' ') + rand;
+    var tf = allTextFrames[6];
+    tf.contents = ref.replace('%20',' ');
+    
+    var refFrame = allTextFrames[7];
+    refFrame.contents = pw;
+    
+    //store ref for filename
+    pdfName = ref;
+    
+    exportPDF(output);
 }
 
 function exportPDF(outputPath){
